@@ -3,7 +3,7 @@
   "theme": "mint",
   "name": "Docatharv",
   "colors": {
-    "primary": "#09fc69",
+    "primary": "#16A34A",
     "light": "#07C983",
     "dark": "#15803D"
   },
@@ -38,9 +38,9 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "Visit my Portfolio",
+          "href": "atharvrastogi.vercel.app",
+          "icon": "profile"
         },
         {
           "anchor": "Community",
@@ -66,11 +66,6 @@
         "href": "mailto:hi@mintlify.com"
       }
     ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
   },
   "footer": {
     "socials": {
