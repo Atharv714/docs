@@ -1,0 +1,136 @@
+---
+title: "4. Understanding Node.js Server Execution and the Event Loop"
+description: "Description of your new file."
+---
+
+## 1. Recap: First Node.js Server
+
+- In the last lecture, we wrote our first basic Node.js server.
+- This server isn't fully functional yet (e.g., it doesn't return a response).
+- However, it demonstrates the fundamental process of creating server-side code and custom servers with Node.js.
+
+## **2. Executing the Node.js Script**
+
+- We executed the server file using `node app.js` (assuming the file was named `app.js`).
+- This command starts the Node.js runtime process.
+- Node.js parses the entire file (`app.js`).
+- It registers variables, functions, and other code constructs found in the file.
+- Essentially, Node.js reads the code and begins executing it sequentially.
+
+<Info>
+  When you run `node app.js`, Node.js reads the _entire_ file top-to-bottom first to understand its structure (registering functions, variables) before it starts executing the logic, like starting the server.
+</Info>
+
+## **3. Why the Program Doesn't Exit: The Event Loop**
+
+- An important observation: after running `node app.js`, the program didn't terminate and return control to the terminal immediately.
+- The reason is a core concept in Node.js: the **Event Loop**.
+
+<Note>
+  The **Event Loop** is the heart of Node.js's non-blocking, asynchronous behavior. It allows Node.js to handle many connections concurrently, despite running JavaScript on a single thread.
+</Note>
+
+- The Event Loop is a continuously running process managed internally by Node.js.
+- **It keeps running as long as there is work to do**, specifically, as long as there are active **event listeners** registered that Node.js is waiting for.
+- In our server code, we registered an important event listener using `http.createServer()`.
+- The function we passed _to_ `createServer` acts as a listener for incoming HTTP requests.
+
+  ```javascript app.js
+  const http = require('http');
+  
+  // The function passed here is the event listener
+  const server = http.createServer(function(req, res) {
+    console.log(req);
+    // ... more code would go here to handle the request
+  });
+   
+  server.listen(3000); // This keeps the process alive
+  ```
+- This specific listener, by its nature for a server, is intended to be ongoing; we never unregistered it because we want the server to keep listening.
+
+## **4. The Role of the Event Listener**
+
+- The function passed to `createServer` is an ongoing event listener for `request` events on the server.
+- We _don't_ unregister it because we want our server to remain active and listening for new requests indefinitely.
+
+## **5. Node.js's Event-Driven Approach**
+
+- The entire Node.js application is managed by this Event Loop.
+- Node.js uses this event-driven approach extensively, not just for handling HTTP server requests.
+- Examples:
+  - Managing the server lifecycle (`server.listen`).
+  - Interacting with databases (e.g., send an "insert data" command and register a function to run _after_ the database confirms completion).
+  - Filesystem operations (reading/writing files).
+- You will encounter this pattern frequently throughout Node.js development: initiate an operation and provide a callback function to execute when it completes.
+
+## **6. Single-Threaded JavaScript Execution and Concurrency**
+
+- Node.js executes your JavaScript code in a **single thread**.
+- This might seem problematic for a server that needs to handle potentially thousands of concurrent requests. If it processed one request fully before starting the next, it would block and be very inefficient.
+
+<Tip>
+  How does Node.js handle many requests with one thread? It uses the **Event Loop** and **non-blocking I/O**.
+
+  - When an operation that takes time (like reading a file or database query) starts, Node.js _delegates_ it to the underlying system (which might use other threads).
+  - Node.js _doesn't wait_. It immediately becomes free to handle other incoming requests or events.
+  - When the delegated operation finishes, the system notifies Node.js via the Event Loop, which then runs the associated JavaScript callback function.
+</Tip>
+
+- The **Event Loop** is the key:
+  - Instead of blocking the thread on slow operations (Input/Output like network requests or disk access), Node.js registers events and associated callback functions.
+  - It can quickly receive a request, delegate any slow I/O work, and then immediately become available to handle the _next_ incoming request.
+  - When the background work is complete, an event is placed back into the event queue.
+  - The Event Loop picks up this completion event and executes the corresponding JavaScript callback function (like sending the database results back to the user).
+- This makes Node.js highly efficient and scalable for I/O-bound applications, even though the JavaScript you write runs on a single thread.
+- **Key Takeaway:** The Event Loop keeps running as long as there are listeners (like the one from `server.listen()`) or pending asynchronous operations.
+
+## \*\*7. Manually Exiting the Process: \*\*`process.exit()`
+
+- It _is_ possible to explicitly stop the Node.js process and exit the Event Loop before all listeners are naturally removed.
+- This can be done using the global `process` object (available in Node.js environments) and its `exit()` method: `process.exit()`.
+
+### **7.1 Demonstration**
+
+1. Add `process.exit();` inside the request handler function passed to `createServer`.
+
+```javascript app.js
+const http = require('http');
+ 
+const server = http.createServer(function(req, res) {
+  console.log('Received request!'); // Log when a request comes in
+  console.log(req.url, req.method, req.headers);
+  process.exit(); // Force exit immediately after handling one request
+});
+ 
+server.listen(3000);
+console.log('Server listening on port 3000...');
+```
+
+1. Run `node app.js` in the terminal. The server starts, logs "Server listening...", and the terminal waits.
+2. Send a request to the server (e.g., refresh `http://localhost:3000` in a browser).
+3. Observe the terminal:
+   - "Received request\!" and the request details will be logged.
+   - _Immediately after_, the Node.js process terminates, and you get your terminal prompt back. The server is no longer running.
+   - **7.2 Explanation**
+     - The `process.exit()` code was only executed _when the request handler function ran_ in response to the incoming request event. Before the request, the line was parsed but not executed.
+
+     ## **8. Why **`process.exit()`**Isn't Typical for Servers** 
+
+     <Warning>
+       You should **almost never** call `process.exit()` within a web server's request handler in a real application. Its purpose is typically for scripts or specific controlled shutdown scenarios, not for abruptly stopping a server that should be continuously available.
+     </Warning>
+     - Using `process.exit()` in a request handler would shut down your server after the very first request it receives.
+     - This prevents it from serving any subsequent users, defeating the purpose of a server.
+     - The demonstration here is purely for understanding the Node.js process lifecycle and how the Event Loop can be _forcefully_ terminated.
+
+     ## **9. How **`process.exit()`**Works with the Event Loop** 
+     - `process.exit()` forces a "hard exit" from the Event Loop.
+     - It bypasses any remaining callbacks or cleanup operations that might be pending.
+     - Node.js essentially sees this command and immediately terminates the process, returning control to the operating system/terminal.
+
+     ## **10. Summary and Next Steps**
+     - We've explored how a Node.js script is executed (`node app.js`).
+     - We understand why the server process keeps running: the **Event Loop** stays active because of persistent listeners like the one created by `http.createServer` and `server.listen`.
+     - We've seen how Node.js achieves concurrency for I/O operations using its event-driven, non-blocking model, despite executing JavaScript on a single thread.
+     - We learned how `process.exit()` can forcefully terminate the Node.js process and the Event Loop, though it's generally unsuitable for typical server operation.
+     - **Next:** We will delve into how to properly work with the `request` (`req`) and `response` (`res`) objects provided within the `createServer` callback function. This involves parsing incoming request data and sending back meaningful responses to the client.
