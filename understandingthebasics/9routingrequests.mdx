@@ -1,0 +1,202 @@
+---
+description: "Learn how to handle incoming POST requests, parse request data, write to files, and redirect users in Node.js."
+mode: "wide"
+title: "10. Handling POST Requests and Redirecting"
+---
+
+## 1. Goal: Processing form submission
+
+- Previously, we set up our server to listen for requests on the root path (`/`).
+- It returns HTML containing a form with an input field.
+
+  ```html app.js
+  <!-- Part of the HTML returned for GET / -->
+  <form action="/message" method="POST">
+      <input type="text" name="message">
+      <button type="submit">Send</button>
+  </form>
+  ```
+- When the "Send" button is clicked, the browser sends a **POST** request to the `/message` path.
+- Currently, our server doesn't handle this specific request yet. Let's change that.
+
+## 2. Adding Logic for the POST Request
+
+We need to add a condition within our `createServer` callback to specifically handle POST requests made to the `/message` URL.
+
+```javascript app.js {2, 15-21}
+const http = require("http");
+const fs = require('fs'); // Import the File System module
+
+const method = req.method;
+
+const server = http.createServer((req, res) => {
+  const url = req.url;
+  const method = req.method; // Get the HTTP method
+
+  if (url === '/') {
+    // ... (Existing code for handling GET /)
+    res.write('<html>');
+    res.write('<head><title>Enter Message</title></head>');
+    res.write('<body><form action="/message" method="POST"><input type="text" name="message"><button type="submit">Send</button></form></body>');
+    res.write('</html>');
+    return res.end();
+  }
+
+  // New logic: Handle POST requests to /message
+  if (url === '/message' && method === 'POST') {
+     // We'll add the file writing and redirect logic here
+     res.write('<html>');
+     res.write('<head><title>Processing...</title></head>');
+     res.write('<body><h1>Processing your message!</h1></body>');
+     res.write('</html>');
+     return res.end(); // Placeholder response for now
+  }
+
+
+    res.setHeader('Content-Type', 'text/html');
+    res.write('<html>');
+    res.write('<body><h1>Hello from Node JS!!</h1></body>')
+    res.write('<html>');
+    res.end();
+});
+
+server.listen(3001);
+```
+
+- We extract both `req.url` and `req.method`.
+- The if condition now checks for _both_ the URL (`/message`) and the method (`POST`).
+
+## 3. Writing Form Data to a File
+
+When we receive the POST request to `/message`, we want to:
+
+1. **Extract** the message data the user typed into the form. (We'll handle this extraction in detail later).
+2. **Write** this message into a new file (e.g., `message.txt`).
+3. **Redirect** the user back to the homepage `(/)`.
+
+Let's focus on writing the file and redirecting first.
+
+### 3.1 Using the File System (fs) Module
+
+- To work with files, we need Node.js's built-in fs (File System) module.
+- We import it at the top of our file: import fs from 'node:fs';
+
+### 3.2 Writing the File Synchronously (for now)
+
+- Inside the `if (url === '/message' && method === 'POST')` block, we can use `fs.writeFileSync()` to create and <u>write</u> to a file.
+- Here we will use it now to write a "DUMMY" text after successfull form submission
+
+  <Warning>
+    `writeFileSync` vs `writeFile`
+
+    \
+    We are using `writeFileSync` here **temporarily** for simplicity in this step. `writeFileSync` is **synchronous**, meaning it **blocks** the entire Node.js event loop until the file writing is complete.
+  </Warning>
+  ```javascript {15-20}
+  const http = require("http");
+  const fs = require('fs');
+  
+  const server = http.createServer((req, res) => {
+  
+      const method = req.method;
+  
+      if(req.url === '/'){
+          res.write("<html>");
+          res.write("<body><form action='/message' method='POST'><input type='text' name='message'></form></body>");
+          res.write("<html>");
+          return res.end();
+      }
+  
+      if(req.url === '/message' && method === 'POST'){
+          fs.writeFileSync('message.txt', 'DUMMY');
+          res.statusCode = 302; 
+          res.setHeader('location', '/');
+          return res.end()
+      }
+  
+      res.setHeader('Content-Type', 'text/html');
+      res.write('<html>');
+      res.write('<body><h1>Hello from Node JS!!</h1></body>')
+      res.write('<html>');
+      res.end();
+  });
+  
+  server.listen(3001);
+  ```
+- here we set `res.statusCode = 302` which states `Found` and in it short it means `Temporary Redirect` \
+  \
+  After writing the file, we don't want the user to stay on the `/message` page (which might currently be blank or show a basic processing message). We want to send them back to the root `(/)`. This is done using an HTTP redirect.
+- **Location Header:** The browser needs to know _where_ to redirect. This is specified using the Location HTTP header.
+
+  ```javascript
+  res.setHeader('location', '/');
+  ```
+
+  after user submits the form, it gets to `/message` and then after reaching endpoint it redirects to `/`
+
+<Tip>
+  You _must_ call `res.end()` after setting the status code and headers for the redirect to actually be sent to the browser. Also, use `return res.end()` to prevent any code _after_ this block from accidentally trying to modify the response further, which would cause errors.
+</Tip>
+
+<Info>
+  Alternative : `res.writeHead()`
+
+  \
+  You can also set the status code and headers in one go using `res.writeHead()`:
+
+  ```javascript
+  // Alternative way to set status and headers for redirect
+  res.writeHead(302, { 'Location': '/' });
+  return res.end();
+  ```
+
+  Both `res.statusCode`/`res.setHeader` and `res.writeHead` achieve the same result for redirection.
+</Info>
+
+## 5. Testing the flow
+
+1. **Restart** your Node.js server (node app.js).
+2. Open your browser and navigate to http://localhost:3000. You should see the form.
+3. Type any message into the input field and click "Send".
+4. **Observe:**
+   - You should be instantly redirected back to http://localhost:3000.
+   - Check your project directory: a new file named message.txt should appear, containing "DUMMY DATA".
+5. **(Optional) Browser Dev Tools:** Open your browser's developer tools (usually F12), go to the "Network" tab, and repeat step 3. You'll see the initial POST request to /message receives a 302 Found status, and then the browser automatically makes a new GET request to / (the value of the Location header).
+
+## 6. Next Steps: Parsing Request Data
+
+We've successfully handled the POST request route, created a file, and redirected. However, we're still writing "DUMMY DATA". The next crucial step is to learn how to **parse the actual data** sent in the body of the POST request so we can save the user's _real_ message to the file.
+
+## 7.  Summary of new Keywords
+
+<ParamField path="req.method">
+  A property on the incoming request object (req) that holds the HTTP method used (e.g., 'GET', 'POST').
+
+  ```javascript
+  if (req.method === 'POST') { ... }
+  ```
+</ParamField>
+
+<ParamField path="fs.writeFileSync(path, data)" type="function">
+  Synchronously writes data to a file. Creates the file if it doesn't exist, overwrites if it does. Blocks the Event Loop.
+
+  ```javascript
+   fs.writeFileSync('message.txt', 'Data');
+  ```
+</ParamField>
+
+<ParamField path="res.statusCode">
+  Property on the response object (res) to set the HTTP status code for the response.
+
+  ```javascript
+   res.statusCode = 302;
+  ```
+</ParamField>
+
+<ParamField path="res.setHeader(name, value)" type="function">
+  Method on the response object to set an HTTP header.	
+
+  ```javascript
+  res.setHeader('Location', '/');
+  ```
+</ParamField>
