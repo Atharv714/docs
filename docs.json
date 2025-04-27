@@ -14,17 +14,6 @@
         "tab": "Guides",
         "groups": [
           {
-            "group": "Essentials",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/settings",
-              "essentials/navigation",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
             "group": "3. Understanding the Basics",
             "pages": [
               "understandingthebasics/4nodelifecycle_evenloop",
