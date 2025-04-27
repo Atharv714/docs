@@ -35,9 +35,9 @@
           {
             "group": "3. Understanding the Basics",
             "pages": [
-              "understandingthebasics/4nodelifecycle_evenloop",
+              "understandingthebasics/4nodelifecycle_evenloop"
             ]
-          },
+          }
         ]
       }
     ],

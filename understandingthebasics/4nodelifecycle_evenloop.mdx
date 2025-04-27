@@ -114,23 +114,26 @@ console.log('Server listening on port 3000...');
    - **7.2 Explanation**
      - The `process.exit()` code was only executed _when the request handler function ran_ in response to the incoming request event. Before the request, the line was parsed but not executed.
 
-     ## **8. Why **`process.exit()`**Isn't Typical for Servers** 
+## 8. Why `process.exit()`**Isn't Typical for Servers**
 
-     <Warning>
-       You should **almost never** call `process.exit()` within a web server's request handler in a real application. Its purpose is typically for scripts or specific controlled shutdown scenarios, not for abruptly stopping a server that should be continuously available.
-     </Warning>
-     - Using `process.exit()` in a request handler would shut down your server after the very first request it receives.
-     - This prevents it from serving any subsequent users, defeating the purpose of a server.
-     - The demonstration here is purely for understanding the Node.js process lifecycle and how the Event Loop can be _forcefully_ terminated.
+<Warning>
+  You should **almost never** call `process.exit()` within a web server's request handler in a real application. Its purpose is typically for scripts or specific controlled shutdown scenarios, not for abruptly stopping a server that should be continuously available.
+</Warning>
 
-     ## **9. How **`process.exit()`**Works with the Event Loop** 
-     - `process.exit()` forces a "hard exit" from the Event Loop.
-     - It bypasses any remaining callbacks or cleanup operations that might be pending.
-     - Node.js essentially sees this command and immediately terminates the process, returning control to the operating system/terminal.
+- Using `process.exit()` in a request handler would shut down your server after the very first request it receives.
+- This prevents it from serving any subsequent users, defeating the purpose of a server.
+- The demonstration here is purely for understanding the Node.js process lifecycle and how the Event Loop can be _forcefully_ terminated.
 
-     ## **10. Summary and Next Steps**
-     - We've explored how a Node.js script is executed (`node app.js`).
-     - We understand why the server process keeps running: the **Event Loop** stays active because of persistent listeners like the one created by `http.createServer` and `server.listen`.
-     - We've seen how Node.js achieves concurrency for I/O operations using its event-driven, non-blocking model, despite executing JavaScript on a single thread.
-     - We learned how `process.exit()` can forcefully terminate the Node.js process and the Event Loop, though it's generally unsuitable for typical server operation.
-     - **Next:** We will delve into how to properly work with the `request` (`req`) and `response` (`res`) objects provided within the `createServer` callback function. This involves parsing incoming request data and sending back meaningful responses to the client.
+## 9. How `process.exit()`**Works with the Event Loop**
+
+- `process.exit()` forces a "hard exit" from the Event Loop.
+- It bypasses any remaining callbacks or cleanup operations that might be pending.
+- Node.js essentially sees this command and immediately terminates the process, returning control to the operating system/terminal.
+
+## **10. Summary and Next Steps**
+
+- We've explored how a Node.js script is executed (`node app.js`).
+- We understand why the server process keeps running: the **Event Loop** stays active because of persistent listeners like the one created by `http.createServer` and `server.listen`.
+- We've seen how Node.js achieves concurrency for I/O operations using its event-driven, non-blocking model, despite executing JavaScript on a single thread.
+- We learned how `process.exit()` can forcefully terminate the Node.js process and the Event Loop, though it's generally unsuitable for typical server operation.
+- **Next:** We will delve into how to properly work with the `request` (`req`) and `response` (`res`) objects provided within the `createServer` callback function. This involves parsing incoming request data and sending back meaningful responses to the client.
