@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+
 @font-face {
     font-family: 'Mabry';
     src: url('/fonts/mabry-regular.ttf') format('truetype');
@@ -11,5 +14,5 @@ h3,
 h4,
 h5,
 h6 {
-    font-family: 'Mabry', sans-serif;
+    font-family: "Montserrat", sans-serif;
 }
